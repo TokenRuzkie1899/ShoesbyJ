@@ -157,70 +157,142 @@
     </div>
 
     <script>
-        const stages = [
-            { name: "Sourced", description: "Found at Goodwill, Needs Cleaning", progress: "0%" },
-            { name: "Prepped", description: "Cleaning, Repair, and Authentication Complete", progress: "25%" },
-            { name: "Photographed", description: "All SEO Images Captured (Tags Ready)", progress: "50%" },
-            { name: "Listed (Active)", description: "Generating Sales & Monitoring Bids", progress: "75%" },
-            { name: "Sold & Shipped", description: "Success! Item is Packaged and Mailed", progress: "100%" }
-        ];
+  /*******************************
+   * ShoesByJ Frontend Connector
+   * GitHub ↔ Google Sheets API
+   *******************************/
 
-        let currentStageIndex = 0;
-        const stageElements = document.querySelectorAll('.stage-block');
-        const progressBar = document.getElementById('progress-bar');
-        const statusText = document.getElementById('current-status-text');
-        const statusCard = document.getElementById('status-card');
-        const nextButton = document.getElementById('next-button');
+  // --- LIVE CONFIG ---
+  const API_URL = "https://script.google.com/macros/s/AKfycbz8Wfqin7IZc87RleIcceBB1bpTMgyfg9BM7q4EPMaMmoOMsXIlicMBAX0qAPlZHJ-PaA/exec";
+  const TOKEN   = "da0503d3-59b5-49e5-b741-a12550feb218";
 
-        function updateUI() {
-            // 1. Reset all stages and set active/glow class
-            stageElements.forEach(el => {
-                el.classList.remove('active', 'glow-orange');
-                const stageIndex = parseInt(el.getAttribute('data-stage'));
+  // --- Stages for visual tracker ---
+  const stages = [
+    { name: "Sourced", description: "Found at Goodwill, Needs Cleaning", progress: "0%" },
+    { name: "Prepped", description: "Cleaning, Repair, and Authentication Complete", progress: "25%" },
+    { name: "Photographed", description: "All SEO Images Captured (Tags Ready)", progress: "50%" },
+    { name: "Listed (Active)", description: "Generating Sales & Monitoring Bids", progress: "75%" },
+    { name: "Sold & Shipped", description: "Success! Item is Packaged and Mailed", progress: "100%" }
+  ];
 
-                // Set past and current blocks to Active/Glow
-                if (stageIndex <= currentStageIndex) {
-                    el.classList.add('active', 'glow-orange');
-                }
-            });
+  // --- App State ---
+  let items = [];
+  let currentItem = null;
+  let currentStageIndex = 0;
 
-            // 2. Update progress bar width and animation flow
-            progressBar.style.width = stages[currentStageIndex].progress;
-            
-            // 3. Update status text
-            statusText.textContent = `${stages[currentStageIndex].name} (${stages[currentStageIndex].description})`;
+  // --- DOM Elements ---
+  const itemSelect  = document.getElementById('item-select');
+  const shoeNameEl  = document.getElementById('current-shoe-name');
+  const statusText  = document.getElementById('current-status-text');
+  const progressBar = document.getElementById('progress-bar');
+  const statusCard  = document.getElementById('status-card');
+  const nextButton  = document.getElementById('next-button');
+  const stageEls    = document.querySelectorAll('.stage-block');
 
-            // 4. Update status card highlight
-            statusCard.classList.remove('glow-orange');
-            if (currentStageIndex < stages.length - 1) {
-                statusText.classList.remove('text-emerald');
-                statusText.classList.add('color-orange');
-                setTimeout(() => statusCard.classList.add('glow-orange'), 100);
-                nextButton.disabled = false;
-                nextButton.textContent = "Advance to Next Stage";
-            } else {
-                // Final State
-                statusText.classList.remove('color-orange');
-                statusText.classList.add('text-emerald');
-                nextButton.textContent = "Process Complete! List New Shoe.";
-                nextButton.disabled = true;
-            }
-        }
+  /***********************
+   * Helper Functions
+   ***********************/
 
-        function nextStage() {
-            if (currentStageIndex < stages.length - 1) {
-                currentStageIndex++;
-                updateUI();
-            }
-        }
+  async function apiGet() {
+    const res = await fetch(`${API_URL}?token=${TOKEN}`);
+    return res.json();
+  }
 
-        function updateStage(index) {
-            currentStageIndex = index;
-            updateUI();
-        }
+  async function apiPost(payload) {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: TOKEN, ...payload })
+    });
+    return res.json();
+  }
 
-        // Initial load
-        updateUI();
-    </script>
-</body>
-</html>
+  function updateUI() {
+    // Update visual progress bar & stages
+    stageEls.forEach(el => {
+      el.classList.remove('active', 'glow-orange');
+      const idx = Number(el.dataset.stage);
+      if (idx <= currentStageIndex) el.classList.add('active', 'glow-orange');
+    });
+
+    // Update bar + status text
+    progressBar.style.width = stages[currentStageIndex].progress;
+    statusText.textContent = `${stages[currentStageIndex].name} (${stages[currentStageIndex].description})`;
+    shoeNameEl.textContent = currentItem ? currentItem.name || "(Unnamed Shoe)" : "No item selected";
+
+    // Button + color
+    if (currentStageIndex < stages.length - 1) {
+      statusText.classList.remove('text-emerald');
+      statusText.classList.add('color-orange');
+      nextButton.disabled = false;
+      nextButton.textContent = "Advance to Next Stage";
+    } else {
+      statusText.classList.remove('color-orange');
+      statusText.classList.add('text-emerald');
+      nextButton.textContent = "Process Complete! List New Shoe.";
+      nextButton.disabled = true;
+    }
+  }
+
+  async function nextStage() {
+    if (!currentItem) return alert("Select an item first!");
+    if (currentStageIndex < stages.length - 1) {
+      await updateStage(currentStageIndex + 1);
+    }
+  }
+
+  async function updateStage(index) {
+    if (!currentItem) return;
+    currentStageIndex = index;
+    updateUI();
+
+    // Push update to Sheets
+    const result = await apiPost({
+      action: "update",
+      id: currentItem.id,
+      stageIndex: index
+    });
+    if (!result.ok) alert("Failed to update stage: " + (result.error || "Unknown error"));
+  }
+
+  async function setCurrentItemById(id) {
+    currentItem = items.find(x => x.id === id);
+    currentStageIndex = Number(currentItem?.stageIndex || 0);
+    updateUI();
+  }
+
+  /***********************
+   * Initialization
+   ***********************/
+  async function init() {
+    try {
+      const data = await apiGet();
+      if (!data.ok) throw new Error(data.error || "API GET failed");
+      items = data.items.filter(r => r.id);
+      
+      // Sort newest first
+      items.sort((a,b) => (b.UpdatedAt || "").localeCompare(a.UpdatedAt || ""));
+
+      // Populate dropdown
+      itemSelect.innerHTML = items.map(
+        it => `<option value="${it.id}">${it.name || "(Unnamed)"} — ${it.brand || ""} ${it.size || ""}</option>`
+      ).join('');
+
+      // Select first item automatically
+      if (items.length) {
+        setCurrentItemById(items[0].id);
+      } else {
+        itemSelect.innerHTML = "<option>No items found</option>";
+      }
+
+      // Dropdown listener
+      itemSelect.addEventListener("change", e => setCurrentItemById(e.target.value));
+
+    } catch (err) {
+      console.error(err);
+      alert("Failed to connect to Google Sheets API. Check token & deployment.");
+    }
+  }
+
+  init();
+</script>
