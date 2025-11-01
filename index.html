@@ -2,43 +2,54 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Reseller Workflow Tracker</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Shoe Listing Optimizer GPT</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
   <style>
-    body { background-color:#1C1C1C; font-family:'Inter', sans-serif; color:#FFFFFF; overflow-x:hidden; }
-    .color-orange{ color:#FF7F00; } .bg-charcoal{ background-color:#1C1C1C; }
-    .border-emerald{ border-color:#10B981; } .text-emerald{ color:#10B981; }
+    body { background-color:#1C1C1C; font-family:'Inter',sans-serif; color:#FFF; overflow-x:hidden; }
+    .color-orange{ color:#FF7F00; } .text-emerald{ color:#10B981; } .border-emerald{ border-color:#10B981; }
     .glow-orange{ box-shadow:0 0 10px rgba(255,127,0,.6),0 0 20px rgba(255,127,0,.2); transition:.3s; }
     .glow-orange:hover{ box-shadow:0 0 15px rgba(255,127,0,.8),0 0 30px rgba(255,127,0,.4); }
-    @keyframes flow{ 0%{background-position:0% 50%} 100%{background-position:100% 50%} }
+    @keyframes flow{0%{background-position:0% 50%}100%{background-position:100% 50%}}
     .flow-line{ background:linear-gradient(90deg,transparent 0%,#10B981 50%,transparent 100%); background-size:200% 100%; animation:flow 3s infinite alternate; }
-    .watermark-bg{ background-image:url("https://placehold.co/1000x500/1c1c1c/1c1c1c?text=👟"); background-size:150px; opacity:.05; position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:0; transition:opacity 1s; }
-    .stage-block{ min-width:200px; height:120px; border:2px solid #10B981; background-color:rgba(30,30,30,.8); cursor:pointer; transition:.3s; position:relative; z-index:10; }
+    .stage-block{ min-width:200px; height:120px; border:2px solid #10B981; background:rgba(30,30,30,.8); cursor:pointer; transition:.3s; position:relative; z-index:10; }
     .stage-block.active{ border:2px solid #FF7F00; color:#FF7F00; }
+    .tab-btn{ padding:.5rem 1rem; border:1px solid #374151; border-radius:.5rem; background:#111827; }
+    .tab-btn.active{ background:#FF7F00; color:#111827; border-color:#FF7F00; }
+    .table th,.table td{ padding:.6rem .75rem; border-bottom:1px solid #2d2d2d; }
+    .badge{ padding:.15rem .5rem; border-radius:.4rem; font-size:.75rem; }
   </style>
 </head>
-<body class="p-8 md:p-16 min-h-screen relative">
-  <div class="watermark-bg"></div>
-
-  <div class="relative z-10 max-w-6xl mx-auto">
+<body class="p-8 md:p-16 min-h-screen">
+  <div class="max-w-6xl mx-auto">
     <!-- Header -->
-    <header class="mb-8 border-b border-gray-700 pb-4">
-      <h1 class="text-4xl font-extrabold color-orange glow-orange">Shoe Listing Optimizer GPT</h1>
-      <p class="mt-2 text-white/75">Track the progress of your thrifted inventory to maximize efficiency and profit.</p>
+    <header class="mb-6 md:mb-8 border-b border-gray-700 pb-4 flex items-center justify-between gap-4">
+      <div>
+        <h1 class="text-3xl md:text-4xl font-extrabold color-orange glow-orange">Shoe Listing Optimizer GPT</h1>
+        <p class="mt-2 text-white/75">Create items on the spot, update stages, and manage inventory.</p>
+      </div>
+      <div class="flex gap-2">
+        <button id="tab-board" class="tab-btn active">Board</button>
+        <button id="tab-table" class="tab-btn">All Items</button>
+      </div>
     </header>
 
-    <!-- Item selector -->
-    <div class="max-w-6xl mx-auto mb-6">
+    <!-- Selector -->
+    <div class="mb-6">
       <label class="block text-sm mb-2 opacity-80">Select item</label>
-      <select id="item-select" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-3">
-        <option>Loading…</option>
-      </select>
+      <div class="flex gap-3">
+        <select id="item-select" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-3">
+          <option>Loading…</option>
+        </select>
+        <button id="btn-delete-current" class="bg-red-600 hover:bg-red-700 text-white font-semibold px-4 rounded">
+          Delete Selected
+        </button>
+      </div>
     </div>
 
     <!-- Create Item Form -->
-    <div class="max-w-6xl mx-auto mb-8 p-4 rounded-lg border border-gray-700 bg-gray-800/40">
+    <div class="mb-8 p-4 rounded-lg border border-gray-700 bg-gray-800/40">
       <h2 class="text-xl font-semibold mb-3">Add New Item</h2>
       <form id="create-form" class="grid md:grid-cols-3 gap-4">
         <div>
@@ -74,88 +85,115 @@
       </form>
     </div>
 
-    <!-- Current Status -->
-    <div id="status-card" class="mb-10 p-6 rounded-lg glow-orange" style="background:#2a2a2a;">
-      <p class="text-sm font-semibold uppercase tracking-wider">
-        Current Listing: <span id="current-shoe-name" class="color-orange">Select or create an item</span>
-      </p>
-      <p class="text-3xl font-bold mt-2">Status:
-        <span id="current-status-text" class="text-emerald">Not Selected</span>
-      </p>
-    </div>
-
-    <!-- Workflow Visualization -->
-    <div class="flex items-center justify-between relative">
-      <div id="progress-bar" class="absolute left-0 top-1/2 h-1 -mt-0.5 flow-line transition-all duration-700" style="width:0%;"></div>
-
-      <div id="stage-0" data-stage="0" class="stage-block active rounded-xl p-4 text-center hover:bg-gray-700" onclick="updateStage(0)">
-        <div class="text-2xl mb-1 color-orange">🔍</div>
-        <div class="text-sm font-semibold uppercase">Sourced</div>
-        <div class="text-xs text-white opacity-50">Found at Goodwill</div>
+    <!-- BOARD VIEW -->
+    <section id="view-board">
+      <!-- Current Status -->
+      <div id="status-card" class="mb-10 p-6 rounded-lg glow-orange" style="background:#2a2a2a;">
+        <p class="text-sm font-semibold uppercase tracking-wider">
+          Current Listing: <span id="current-shoe-name" class="color-orange">Select or create an item</span>
+        </p>
+        <p class="text-3xl font-bold mt-2">Status:
+          <span id="current-status-text" class="text-emerald">Not Selected</span>
+        </p>
       </div>
 
-      <div class="w-10 h-0.5 border-emerald border-t-2"></div>
+      <!-- Workflow Visualization -->
+      <div class="flex items-center justify-between relative overflow-x-auto">
+        <div id="progress-bar" class="absolute left-0 top-1/2 h-1 -mt-0.5 flow-line transition-all duration-700" style="width:0%;"></div>
 
-      <div id="stage-1" data-stage="1" class="stage-block rounded-xl p-4 text-center hover:bg-gray-700" onclick="updateStage(1)">
-        <div class="text-2xl mb-1 color-orange">🧼</div>
-        <div class="text-sm font-semibold uppercase">Prepped</div>
-        <div class="text-xs text-white opacity-50">Cleaned & Repaired</div>
+        <div id="stage-0" data-stage="0" class="stage-block active rounded-xl p-4 text-center hover:bg-gray-700" onclick="updateStage(0)">
+          <div class="text-2xl mb-1 color-orange">🔍</div>
+          <div class="text-sm font-semibold uppercase">Sourced</div>
+          <div class="text-xs text-white/60">Found at Goodwill</div>
+        </div>
+
+        <div class="w-10 h-0.5 border-emerald border-t-2"></div>
+
+        <div id="stage-1" data-stage="1" class="stage-block rounded-xl p-4 text-center hover:bg-gray-700" onclick="updateStage(1)">
+          <div class="text-2xl mb-1 color-orange">🧼</div>
+          <div class="text-sm font-semibold uppercase">Prepped</div>
+          <div class="text-xs text-white/60">Cleaned & Repaired</div>
+        </div>
+
+        <div class="w-10 h-0.5 border-emerald border-t-2"></div>
+
+        <div id="stage-2" data-stage="2" class="stage-block rounded-xl p-4 text-center hover:bg-gray-700" onclick="updateStage(2)">
+          <div class="text-2xl mb-1 color-orange">📸</div>
+          <div class="text-sm font-semibold uppercase">Photographed</div>
+          <div class="text-xs text-white/60">8–12 SEO Images</div>
+        </div>
+
+        <div class="w-10 h-0.5 border-emerald border-t-2"></div>
+
+        <div id="stage-3" data-stage="3" class="stage-block rounded-xl p-4 text-center hover:bg-gray-700" onclick="updateStage(3)">
+          <div class="text-2xl mb-1 color-orange">📝</div>
+          <div class="text-sm font-semibold uppercase">Listed (Active)</div>
+          <div class="text-xs text-white/60">AI Listing Generated</div>
+        </div>
+
+        <div class="w-10 h-0.5 border-emerald border-t-2"></div>
+
+        <div id="stage-4" data-stage="4" class="stage-block rounded-xl p-4 text-center hover:bg-gray-700" onclick="updateStage(4)">
+          <div class="text-2xl mb-1 color-orange">💰</div>
+          <div class="text-sm font-semibold uppercase">Sold & Shipped</div>
+          <div class="text-xs text-white/60">Profit Realized</div>
+        </div>
       </div>
 
-      <div class="w-10 h-0.5 border-emerald border-t-2"></div>
-
-      <div id="stage-2" data-stage="2" class="stage-block rounded-xl p-4 text-center hover:bg-gray-700" onclick="updateStage(2)">
-        <div class="text-2xl mb-1 color-orange">📸</div>
-        <div class="text-sm font-semibold uppercase">Photographed</div>
-        <div class="text-xs text-white opacity-50">8-12 SEO Images</div>
+      <div class="mt-12 flex justify-center">
+        <button id="next-button" onclick="nextStage()" class="bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 px-8 rounded-xl glow-orange transition-all duration-300 transform hover:scale-105">
+          Advance to Next Stage
+        </button>
       </div>
+    </section>
 
-      <div class="w-10 h-0.5 border-emerald border-t-2"></div>
-
-      <div id="stage-3" data-stage="3" class="stage-block rounded-xl p-4 text-center hover:bg-gray-700" onclick="updateStage(3)">
-        <div class="text-2xl mb-1 color-orange">📝</div>
-        <div class="text-sm font-semibold uppercase">Listed (Active)</div>
-        <div class="text-xs text-white opacity-50">AI Listing Generated</div>
+    <!-- TABLE VIEW -->
+    <section id="view-table" class="hidden">
+      <div class="mb-3 flex items-center gap-2">
+        <input id="search" placeholder="Search name/brand/size…" class="w-full bg-gray-900 border border-gray-700 rounded p-2" />
+        <button id="btn-refresh" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded">Refresh</button>
       </div>
-
-      <div class="w-10 h-0.5 border-emerald border-t-2"></div>
-
-      <div id="stage-4" data-stage="4" class="stage-block rounded-xl p-4 text-center hover:bg-gray-700" onclick="updateStage(4)">
-        <div class="text-2xl mb-1 color-orange">💰</div>
-        <div class="text-sm font-semibold uppercase">Sold & Shipped</div>
-        <div class="text-xs text-white opacity-50">Profit Realized</div>
+      <div class="overflow-x-auto rounded border border-gray-700">
+        <table class="table w-full text-sm">
+          <thead class="bg-gray-900/60">
+            <tr>
+              <th>Name</th>
+              <th>Brand</th>
+              <th>Size</th>
+              <th>Stage</th>
+              <th>Margin%</th>
+              <th>Updated</th>
+              <th class="text-right pr-6">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="items-tbody" class="bg-gray-800/40"></tbody>
+        </table>
       </div>
-    </div>
-
-    <div class="mt-12 flex justify-center">
-      <button id="next-button" onclick="nextStage()" class="bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 px-8 rounded-xl glow-orange transition-all duration-300 transform hover:scale-105">
-        Advance to Next Stage
-      </button>
-    </div>
+      <p class="text-xs opacity-70 mt-2">Tip: Margin% is calculated by backend as (target - cost) / cost.</p>
+    </section>
   </div>
 
   <script>
-    /*******************************
-     * ShoesByJ Frontend Connector
-     * GitHub ↔ Google Sheets API
-     *******************************/
+    /* ===== CONFIG (LIVE) ===== */
     const API_URL = "https://script.google.com/macros/s/AKfycbz8Wfqin7IZc87RleIcceBB1bpTMgyfg9BM7q4EPMaMmoOMsXIlicMBAX0qAPlZHJ-PaA/exec";
     const TOKEN   = "da0503d3-59b5-49e5-b741-a12550feb218";
 
+    /* ===== Stages ===== */
     const stages = [
-      { name: "Sourced",        description: "Found at Goodwill, Needs Cleaning",        progress: "0%"  },
-      { name: "Prepped",        description: "Cleaning, Repair, and Authentication Complete", progress: "25%" },
-      { name: "Photographed",   description: "All SEO Images Captured (Tags Ready)",     progress: "50%" },
-      { name: "Listed (Active)",description: "Generating Sales & Monitoring Bids",       progress: "75%" },
-      { name: "Sold & Shipped", description: "Success! Item is Packaged and Mailed",     progress: "100%" }
+      { name:"Sourced",        description:"Found at Goodwill, Needs Cleaning",        progress:"0%"  },
+      { name:"Prepped",        description:"Cleaning, Repair, and Authentication Complete", progress:"25%" },
+      { name:"Photographed",   description:"All SEO Images Captured (Tags Ready)",     progress:"50%" },
+      { name:"Listed (Active)",description:"Generating Sales & Monitoring Bids",       progress:"75%" },
+      { name:"Sold & Shipped", description:"Success! Item is Packaged and Mailed",     progress:"100%" }
     ];
 
-    // State
+    /* ===== State ===== */
     let items = [];
+    let filtered = [];
     let currentItem = null;
     let currentStageIndex = 0;
 
-    // DOM
+    /* ===== DOM ===== */
     const itemSelect  = document.getElementById('item-select');
     const shoeNameEl  = document.getElementById('current-shoe-name');
     const statusText  = document.getElementById('current-status-text');
@@ -164,7 +202,13 @@
     const nextButton  = document.getElementById('next-button');
     const stageEls    = document.querySelectorAll('.stage-block');
 
-    // Create form elements
+    const btnDeleteCurrent = document.getElementById('btn-delete-current');
+
+    const tabBoard  = document.getElementById('tab-board');
+    const tabTable  = document.getElementById('tab-table');
+    const viewBoard = document.getElementById('view-board');
+    const viewTable = document.getElementById('view-table');
+
     const formCreate  = document.getElementById('create-form');
     const fName   = document.getElementById('f-name');
     const fBrand  = document.getElementById('f-brand');
@@ -174,137 +218,204 @@
     const fTarget = document.getElementById('f-target');
     const msgCreate = document.getElementById('create-msg');
 
-    // API helpers
-    async function apiGet() {
+    const searchInput = document.getElementById('search');
+    const btnRefresh  = document.getElementById('btn-refresh');
+    const tbody       = document.getElementById('items-tbody');
+
+    /* ===== API ===== */
+    async function apiGet(){
       const res = await fetch(`${API_URL}?token=${TOKEN}`);
       return res.json();
     }
-    async function apiPost(payload) {
+    async function apiPost(payload){
       const res = await fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: TOKEN, ...payload })
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ token:TOKEN, ...payload })
       });
       return res.json();
     }
 
-    // UI
-    function updateUI() {
-      stageEls.forEach(el => {
-        el.classList.remove('active', 'glow-orange');
+    /* ===== UI board ===== */
+    function updateUI(){
+      stageEls.forEach(el=>{
+        el.classList.remove('active','glow-orange');
         const idx = Number(el.dataset.stage);
-        if (idx <= currentStageIndex) el.classList.add('active', 'glow-orange');
+        if (idx <= currentStageIndex) el.classList.add('active','glow-orange');
       });
       progressBar.style.width = stages[currentStageIndex].progress;
       statusText.textContent = `${stages[currentStageIndex].name} (${stages[currentStageIndex].description})`;
-      shoeNameEl.textContent = currentItem ? (currentItem.name || "(Unnamed Shoe)") : "No item selected";
+      shoeNameEl.textContent = currentItem ? (currentItem.name || '(Unnamed Shoe)') : 'No item selected';
 
       if (currentStageIndex < stages.length - 1) {
         statusText.classList.remove('text-emerald');
         statusText.classList.add('color-orange');
         nextButton.disabled = false;
-        nextButton.textContent = "Advance to Next Stage";
+        nextButton.textContent = 'Advance to Next Stage';
       } else {
         statusText.classList.remove('color-orange');
         statusText.classList.add('text-emerald');
-        nextButton.textContent = "Process Complete! List New Shoe.";
+        nextButton.textContent = 'Process Complete! List New Shoe.';
         nextButton.disabled = true;
       }
     }
 
-    async function updateStage(index) {
-      if (!currentItem) return alert("Select an item first!");
+    async function updateStage(index){
+      if (!currentItem) return alert('Select an item first!');
       const prev = currentStageIndex;
-      currentStageIndex = index;
-      updateUI();
-      const r = await apiPost({ action: "update", id: currentItem.id, stageIndex: index });
-      if (!r.ok) {
-        currentStageIndex = prev; updateUI();
-        alert("Failed to update: " + (r.error || "unknown")); 
-      } else {
-        currentItem.stageIndex = index;
-      }
+      currentStageIndex = index; updateUI();
+      const r = await apiPost({ action:'update', id: currentItem.id, stageIndex:index });
+      if (!r.ok){ currentStageIndex = prev; updateUI(); alert('Failed to update: '+(r.error||'unknown')); return; }
+      currentItem.stageIndex = index;
+      await refreshItems(currentItem.id, {silent:true}); // refresh in background to keep table in sync
     }
     window.updateStage = updateStage;
-    window.nextStage = () => {
-      if (currentStageIndex < stages.length - 1) updateStage(currentStageIndex + 1);
-    };
+    window.nextStage = () => { if (currentStageIndex < stages.length -1) updateStage(currentStageIndex+1); };
 
-    function setCurrentItemById(id) {
-      currentItem = items.find(x => x.id === id) || null;
-      currentStageIndex = currentItem ? Number(currentItem.stageIndex || 0) : 0;
+    function setCurrentItemById(id){
+      currentItem = items.find(x=>x.id===id) || null;
+      currentStageIndex = currentItem ? Number(currentItem.stageIndex||0) : 0;
       updateUI();
     }
 
-    function renderDropdown() {
-      if (!items.length) {
-        itemSelect.innerHTML = `<option>No items found</option>`;
-        return;
-      }
-      itemSelect.innerHTML = items
-        .map(it => `<option value="${it.id}">${(it.name||'(Unnamed)')} — ${it.brand||''} ${it.size||''}</option>`)
-        .join('');
+    function renderDropdown(){
+      if (!items.length){ itemSelect.innerHTML = `<option>No items found</option>`; return; }
+      itemSelect.innerHTML = items.map(it=>`<option value="${it.id}">${(it.name||'(Unnamed)')} — ${it.brand||''} ${it.size||''}</option>`).join('');
     }
 
-    async function refreshItems(selectId = null) {
+    /* ===== Table view ===== */
+    function stageBadge(i){
+      const label = stages[i]?.name ?? 'Unknown';
+      const colors = ['#4b5563','#2563eb','#f59e0b','#10b981','#6ee7b7'];
+      const color = colors[i] || '#4b5563';
+      return `<span class="badge" style="background:${color}22;border:1px solid ${color}55">${label}</span>`;
+    }
+    function pct(v){ return (typeof v==='number' && isFinite(v)) ? (v*100).toFixed(0)+'%' : ''; }
+
+    function renderTable(){
+      const q = (searchInput.value||'').toLowerCase();
+      filtered = !q ? items : items.filter(it=>{
+        return [it.name,it.brand,it.size].some(x=> String(x||'').toLowerCase().includes(q));
+      });
+
+      if (!filtered.length){
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-6 text-white/60">No matches.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(it=>{
+        const updated = it.UpdatedAt ? new Date(it.UpdatedAt).toLocaleString() : '';
+        return `
+          <tr>
+            <td>${it.name || ''}</td>
+            <td>${it.brand || ''}</td>
+            <td>${it.size || ''}</td>
+            <td>${stageBadge(Number(it.stageIndex||0))}</td>
+            <td>${pct(it.MarginPct)}</td>
+            <td>${updated}</td>
+            <td class="text-right pr-6">
+              <button class="text-red-400 hover:text-red-300 underline" data-del="${it.id}">Delete</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    tbody.addEventListener('click', async (e)=>{
+      const id = e.target?.dataset?.del;
+      if (!id) return;
+      if (!confirm('Delete this item? This cannot be undone.')) return;
+      const r = await apiPost({ action:'delete', id });
+      if (!r.ok){ alert('Delete failed: ' + (r.error||'unknown')); return; }
+      await refreshItems(null);
+    });
+
+    /* ===== Data refresh ===== */
+    async function refreshItems(selectId=null, opts={}){
       const data = await apiGet();
       if (!data.ok) throw new Error(data.error || 'GET failed');
-      items = (data.items || []).filter(r => r && r.id);
-      items.sort((a,b)=> String(b.UpdatedAt||'').localeCompare(String(a.UpdatedAt||''))); // latest first
+      items = (data.items||[]).filter(r=>r && r.id);
+      // latest first
+      items.sort((a,b)=> String(b.UpdatedAt||'').localeCompare(String(a.UpdatedAt||'')));
       renderDropdown();
+      renderTable();
       if (selectId && items.find(i=>i.id===selectId)) {
-        itemSelect.value = selectId;
-        setCurrentItemById(selectId);
-      } else if (items.length) {
-        itemSelect.value = items[0].id;
-        setCurrentItemById(items[0].id);
+        itemSelect.value = selectId; setCurrentItemById(selectId);
+      } else if (items.length){
+        itemSelect.value = items[0].id; setCurrentItemById(items[0].id);
       } else {
         currentItem = null; currentStageIndex = 0; updateUI();
       }
+      if (!opts.silent) console.log('Items refreshed:', items.length);
     }
 
-    // Create form submit
-    formCreate.addEventListener('submit', async (e) => {
+    /* ===== Create item ===== */
+    formCreate.addEventListener('submit', async (e)=>{
       e.preventDefault();
-      msgCreate.textContent = "Creating…";
       const payload = {
-        action: "create",
+        action:'create',
         name: fName.value.trim(),
-        brand: fBrand.value.trim(),
+        brand:fBrand.value.trim(),
         size: fSize.value.trim(),
-        sku: fSku.value.trim(),
+        sku:  fSku.value.trim(),
         cost: fCost.value ? Number(fCost.value) : 0,
         target: fTarget.value ? Number(fTarget.value) : 0,
         stageIndex: 0
       };
-      if (!payload.name) { msgCreate.textContent = "Name is required."; return; }
-
-      try {
+      if (!payload.name){ alert('Name is required'); return; }
+      document.getElementById('btn-create').disabled = true;
+      try{
         const res = await apiPost(payload);
-        if (!res.ok) { msgCreate.textContent = "Failed: " + (res.error || "unknown"); return; }
-        msgCreate.textContent = "Created! Loading…";
-        fName.value = ""; fBrand.value = ""; fSize.value = ""; fSku.value = "";
-        fCost.value = ""; fTarget.value = "";
-        await refreshItems(res.id); // select the newly created record
-        msgCreate.textContent = "Item created and selected ✅";
-        setTimeout(()=> msgCreate.textContent = "", 3000);
-      } catch (err) {
-        console.error(err);
-        msgCreate.textContent = "Error creating item.";
+        if (!res.ok){ alert('Create failed: ' + (res.error||'unknown')); return; }
+        fName.value=fBrand.value=fSize.value=fSku.value=fCost.value=fTarget.value='';
+        await refreshItems(res.id);
+        document.getElementById('create-msg').textContent = 'Item created ✅';
+        setTimeout(()=> document.getElementById('create-msg').textContent='', 2500);
+      } finally{
+        document.getElementById('btn-create').disabled = false;
       }
     });
 
-    // Dropdown change
-    itemSelect.addEventListener('change', (e)=> setCurrentItemById(e.target.value));
+    /* ===== Delete selected ===== */
+    btnDeleteCurrent.addEventListener('click', async ()=>{
+      if (!currentItem) return alert('No item selected.');
+      if (!confirm(`Delete "${currentItem.name || 'this item'}"?`)) return;
+      const r = await apiPost({ action:'delete', id: currentItem.id });
+      if (!r.ok){ alert('Delete failed: ' + (r.error||'unknown')); return; }
+      await refreshItems(null);
+    });
 
-    // Init
+    /* ===== Tabs ===== */
+    function setTab(which){
+      if (which==='board'){
+        tabBoard.classList.add('active'); tabTable.classList.remove('active');
+        viewBoard.classList.remove('hidden'); viewTable.classList.add('hidden');
+      } else {
+        tabTable.classList.add('active'); tabBoard.classList.remove('active');
+        viewTable.classList.remove('hidden'); viewBoard.classList.add('hidden');
+        renderTable();
+      }
+    }
+    tabBoard.addEventListener('click', ()=> setTab('board'));
+    tabTable.addEventListener('click', ()=> setTab('table'));
+
+    /* ===== Search & refresh ===== */
+    searchInput.addEventListener('input', renderTable);
+    btnRefresh.addEventListener('click', ()=> refreshItems(currentItem?.id || null));
+
+    /* ===== Init ===== */
     (async function init(){
-      try { await refreshItems(); }
-      catch (err) {
+      try{
+        await refreshItems();
+      } catch(err){
         console.error(err);
-        alert("Failed to load from Sheets. Check API_URL/TOKEN & deployment.");
+        alert('Failed to load from Sheets. Check API_URL/TOKEN & deployment.');
       }
     })();
+
+    /* Expose for inline onclicks in stage blocks */
+    window.updateStage = updateStage;
+    window.nextStage  = () => { if (currentStageIndex < stages.length-1) updateStage(currentStageIndex+1); };
   </script>
 </body>
 </html>
