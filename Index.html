@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reseller Workflow Tracker</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Use Inter font for clean, modern look -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        /* 6️⃣ Charcoal Background */
+        body {
+            background-color: #1C1C1C;
+            font-family: 'Inter', sans-serif;
+            color: #FFFFFF;
+            overflow-x: hidden;
+        }
+
+        /* Custom Colors based on brief */
+        .color-orange { color: #FF7F00; }
+        .bg-charcoal { background-color: #1C1C1C; }
+        .border-emerald { border-color: #10B981; }
+        .text-emerald { color: #10B981; }
+
+        /* 3️⃣ Soft Orange Glow (for active/highlighted elements) */
+        .glow-orange {
+            box-shadow: 0 0 10px rgba(255, 127, 0, 0.6), 0 0 20px rgba(255, 127, 0, 0.2);
+            transition: all 0.3s ease-in-out;
+        }
+        .glow-orange:hover {
+             box-shadow: 0 0 15px rgba(255, 127, 0, 0.8), 0 0 30px rgba(255, 127, 0, 0.4);
+        }
+
+        /* 4️⃣ Emerald Fade Motion for Gradient Dots/Lines */
+        @keyframes flow {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 100% 50%; }
+        }
+        .flow-line {
+            background: linear-gradient(90deg, transparent 0%, #10B981 50%, transparent 100%);
+            background-size: 200% 100%;
+            animation: flow 3s infinite alternate;
+        }
+
+        /* 5️⃣ Shoe Silhouettes (Low-opacity watermark) */
+        .watermark-bg {
+            background-image: url("https://placehold.co/1000x500/1c1c1c/1c1c1c?text=👟"); /* Using a placeholder with emoji to symbolize a shoe */
+            background-size: 150px;
+            opacity: 0.05;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            transition: opacity 1s;
+        }
+
+        /* 3️⃣ Stage Block Styling */
+        .stage-block {
+            min-width: 200px;
+            height: 120px;
+            border: 2px solid #10B981; /* Emerald line/box */
+            background-color: rgba(30, 30, 30, 0.8);
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            z-index: 10;
+        }
+
+        .stage-block.active {
+            border: 2px solid #FF7F00; /* Active border color */
+            color: #FF7F00; /* Active text color */
+        }
+    </style>
+</head>
+<body class="p-8 md:p-16 min-h-screen relative">
+    
+    <!-- Watermark Background -->
+    <div class="watermark-bg"></div>
+
+    <div class="relative z-10 max-w-6xl mx-auto">
+        <!-- Header -->
+        <header class="mb-12 border-b border-gray-700 pb-4">
+            <h1 class="text-4xl font-extrabold color-orange glow-orange">Shoe Listing Optimizer GPT</h1>
+            <p class="mt-2 text-white text-opacity-75">Track the progress of your thrifted inventory to maximize efficiency and profit.</p>
+        </header>
+
+        <!-- Current Status Display -->
+        <div id="status-card" class="mb-10 p-6 rounded-lg glow-orange transition-shadow duration-500" style="background-color: #2a2a2a;">
+            <p class="text-sm font-semibold text-white uppercase tracking-wider">Current Listing: <span id="current-shoe-name" class="color-orange">Red Wing Heritage Moc Toe (New Find)</span></p>
+            <p class="text-3xl font-bold mt-2 text-white">Status: <span id="current-status-text" class="text-emerald">SOURCED (Cleaning Needed)</span></p>
+        </div>
+
+        <!-- Workflow Visualization (Stage Blocks & Arrows) -->
+        <div class="flex items-center justify-between relative">
+            
+            <!-- 4️⃣ Emerald Fade Motion Line (Active Progress) -->
+            <div id="progress-bar" class="absolute left-0 top-1/2 h-1 -mt-0.5 flow-line transition-all duration-700" style="width: 0%;"></div>
+            
+            <!-- Stage Blocks -->
+            <div id="stage-0" data-stage="0" class="stage-block active rounded-xl p-4 text-center hover:bg-gray-700" onclick="updateStage(0)">
+                <div class="text-2xl mb-1 color-orange">🔍</div>
+                <div class="text-sm font-semibold uppercase">Sourced</div>
+                <div class="text-xs text-white opacity-50">Found at Goodwill</div>
+            </div>
+
+            <!-- 3️⃣ Emerald Arrow -->
+            <div class="w-10 h-0.5 border-emerald border-t-2"></div>
+
+            <div id="stage-1" data-stage="1" class="stage-block rounded-xl p-4 text-center hover:bg-gray-700" onclick="updateStage(1)">
+                <div class="text-2xl mb-1 color-orange">🧼</div>
+                <div class="text-sm font-semibold uppercase">Prepped</div>
+                <div class="text-xs text-white opacity-50">Cleaned & Repaired</div>
+            </div>
+
+            <div class="w-10 h-0.5 border-emerald border-t-2"></div>
+
+            <div id="stage-2" data-stage="2" class="stage-block rounded-xl p-4 text-center hover:bg-gray-700" onclick="updateStage(2)">
+                <div class="text-2xl mb-1 color-orange">📸</div>
+                <div class="text-sm font-semibold uppercase">Photographed</div>
+                <div class="text-xs text-white opacity-50">8-12 SEO Images</div>
+            </div>
+
+            <div class="w-10 h-0.5 border-emerald border-t-2"></div>
+
+            <div id="stage-3" data-stage="3" class="stage-block rounded-xl p-4 text-center hover:bg-gray-700" onclick="updateStage(3)">
+                <div class="text-2xl mb-1 color-orange">📝</div>
+                <div class="text-sm font-semibold uppercase">Listed (Active)</div>
+                <div class="text-xs text-white opacity-50">AI Listing Generated</div>
+            </div>
+
+            <div class="w-10 h-0.5 border-emerald border-t-2"></div>
+
+            <div id="stage-4" data-stage="4" class="stage-block rounded-xl p-4 text-center hover:bg-gray-700" onclick="updateStage(4)">
+                <div class="text-2xl mb-1 color-orange">💰</div>
+                <div class="text-sm font-semibold uppercase">Sold & Shipped</div>
+                <div class="text-xs text-white opacity-50">Profit Realized</div>
+            </div>
+        </div>
+
+        <!-- Button to advance step -->
+        <div class="mt-12 flex justify-center">
+            <button id="next-button" onclick="nextStage()" class="bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 px-8 rounded-xl glow-orange transition-all duration-300 transform hover:scale-105">
+                Advance to Next Stage
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const stages = [
+            { name: "Sourced", description: "Found at Goodwill, Needs Cleaning", progress: "0%" },
+            { name: "Prepped", description: "Cleaning, Repair, and Authentication Complete", progress: "25%" },
+            { name: "Photographed", description: "All SEO Images Captured (Tags Ready)", progress: "50%" },
+            { name: "Listed (Active)", description: "Generating Sales & Monitoring Bids", progress: "75%" },
+            { name: "Sold & Shipped", description: "Success! Item is Packaged and Mailed", progress: "100%" }
+        ];
+
+        let currentStageIndex = 0;
+        const stageElements = document.querySelectorAll('.stage-block');
+        const progressBar = document.getElementById('progress-bar');
+        const statusText = document.getElementById('current-status-text');
+        const statusCard = document.getElementById('status-card');
+        const nextButton = document.getElementById('next-button');
+
+        function updateUI() {
+            // 1. Reset all stages and set active/glow class
+            stageElements.forEach(el => {
+                el.classList.remove('active', 'glow-orange');
+                const stageIndex = parseInt(el.getAttribute('data-stage'));
+
+                // Set past and current blocks to Active/Glow
+                if (stageIndex <= currentStageIndex) {
+                    el.classList.add('active', 'glow-orange');
+                }
+            });
+
+            // 2. Update progress bar width and animation flow
+            progressBar.style.width = stages[currentStageIndex].progress;
+            
+            // 3. Update status text
+            statusText.textContent = `${stages[currentStageIndex].name} (${stages[currentStageIndex].description})`;
+
+            // 4. Update status card highlight
+            statusCard.classList.remove('glow-orange');
+            if (currentStageIndex < stages.length - 1) {
+                statusText.classList.remove('text-emerald');
+                statusText.classList.add('color-orange');
+                setTimeout(() => statusCard.classList.add('glow-orange'), 100);
+                nextButton.disabled = false;
+                nextButton.textContent = "Advance to Next Stage";
+            } else {
+                // Final State
+                statusText.classList.remove('color-orange');
+                statusText.classList.add('text-emerald');
+                nextButton.textContent = "Process Complete! List New Shoe.";
+                nextButton.disabled = true;
+            }
+        }
+
+        function nextStage() {
+            if (currentStageIndex < stages.length - 1) {
+                currentStageIndex++;
+                updateUI();
+            }
+        }
+
+        function updateStage(index) {
+            currentStageIndex = index;
+            updateUI();
+        }
+
+        // Initial load
+        updateUI();
+    </script>
+</body>
+</html>
