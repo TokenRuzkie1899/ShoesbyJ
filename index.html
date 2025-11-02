@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Shoe Listing Optimizer GPT</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
@@ -35,7 +35,7 @@
       </div>
     </header>
 
-    <!-- Selector -->
+    <!-- Selector + Delete -->
     <div class="mb-6">
       <label class="block text-sm mb-2 opacity-80">Select item</label>
       <div class="flex gap-3">
@@ -87,7 +87,6 @@
 
     <!-- BOARD VIEW -->
     <section id="view-board">
-      <!-- Current Status -->
       <div id="status-card" class="mb-10 p-6 rounded-lg glow-orange" style="background:#2a2a2a;">
         <p class="text-sm font-semibold uppercase tracking-wider">
           Current Listing: <span id="current-shoe-name" class="color-orange">Select or create an item</span>
@@ -97,7 +96,6 @@
         </p>
       </div>
 
-      <!-- Workflow Visualization -->
       <div class="flex items-center justify-between relative overflow-x-auto">
         <div id="progress-bar" class="absolute left-0 top-1/2 h-1 -mt-0.5 flow-line transition-all duration-700" style="width:0%;"></div>
 
@@ -160,6 +158,8 @@
               <th>Name</th>
               <th>Brand</th>
               <th>Size</th>
+              <th>Cost</th>
+              <th>Target</th>
               <th>Stage</th>
               <th>Margin%</th>
               <th>Updated</th>
@@ -169,7 +169,7 @@
           <tbody id="items-tbody" class="bg-gray-800/40"></tbody>
         </table>
       </div>
-      <p class="text-xs opacity-70 mt-2">Tip: Margin% is calculated by backend as (target - cost) / cost.</p>
+      <p class="text-xs opacity-70 mt-2">Tip: Margin% is calculated in the backend as (target − cost) / cost.</p>
     </section>
   </div>
 
@@ -186,6 +186,16 @@
       { name:"Listed (Active)",description:"Generating Sales & Monitoring Bids",       progress:"75%" },
       { name:"Sold & Shipped", description:"Success! Item is Packaged and Mailed",     progress:"100%" }
     ];
+
+    /* ===== Helpers ===== */
+    const fmtMoney = v => (v === '' || v == null || isNaN(Number(v))) ? '' :
+      new Intl.NumberFormat(undefined, { style:'currency', currency:'USD', maximumFractionDigits: 2 }).format(Number(v));
+    function stageOptions(selectedIndex){
+      return stages.map((s, i) =>
+        `<option value="${i}" ${Number(selectedIndex)===i ? 'selected' : ''}>${s.name}</option>`
+      ).join('');
+    }
+    function pct(v){ return (typeof v==='number' && isFinite(v)) ? (v*100).toFixed(0)+'%' : ''; }
 
     /* ===== State ===== */
     let items = [];
@@ -236,7 +246,7 @@
       return res.json();
     }
 
-    /* ===== UI board ===== */
+    /* ===== UI: Board ===== */
     function updateUI(){
       stageEls.forEach(el=>{
         el.classList.remove('active','glow-orange');
@@ -267,7 +277,7 @@
       const r = await apiPost({ action:'update', id: currentItem.id, stageIndex:index });
       if (!r.ok){ currentStageIndex = prev; updateUI(); alert('Failed to update: '+(r.error||'unknown')); return; }
       currentItem.stageIndex = index;
-      await refreshItems(currentItem.id, {silent:true}); // refresh in background to keep table in sync
+      await refreshItems(currentItem.id, {silent:true});
     }
     window.updateStage = updateStage;
     window.nextStage = () => { if (currentStageIndex < stages.length -1) updateStage(currentStageIndex+1); };
@@ -284,14 +294,6 @@
     }
 
     /* ===== Table view ===== */
-    function stageBadge(i){
-      const label = stages[i]?.name ?? 'Unknown';
-      const colors = ['#4b5563','#2563eb','#f59e0b','#10b981','#6ee7b7'];
-      const color = colors[i] || '#4b5563';
-      return `<span class="badge" style="background:${color}22;border:1px solid ${color}55">${label}</span>`;
-    }
-    function pct(v){ return (typeof v==='number' && isFinite(v)) ? (v*100).toFixed(0)+'%' : ''; }
-
     function renderTable(){
       const q = (searchInput.value||'').toLowerCase();
       filtered = !q ? items : items.filter(it=>{
@@ -299,18 +301,28 @@
       });
 
       if (!filtered.length){
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-6 text-white/60">No matches.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-6 text-white/60">No matches.</td></tr>`;
         return;
       }
 
       tbody.innerHTML = filtered.map(it=>{
         const updated = it.UpdatedAt ? new Date(it.UpdatedAt).toLocaleString() : '';
+        const cost    = fmtMoney(it.cost);
+        const target  = fmtMoney(it.target);
+        const stageIdx = Number(it.stageIndex || 0);
+
         return `
           <tr>
             <td>${it.name || ''}</td>
             <td>${it.brand || ''}</td>
             <td>${it.size || ''}</td>
-            <td>${stageBadge(Number(it.stageIndex||0))}</td>
+            <td>${cost}</td>
+            <td>${target}</td>
+            <td>
+              <select data-stage-for="${it.id}" class="bg-gray-900 border border-gray-700 rounded px-2 py-1">
+                ${stageOptions(stageIdx)}
+              </select>
+            </td>
             <td>${pct(it.MarginPct)}</td>
             <td>${updated}</td>
             <td class="text-right pr-6">
@@ -321,6 +333,7 @@
       }).join('');
     }
 
+    // per-row delete
     tbody.addEventListener('click', async (e)=>{
       const id = e.target?.dataset?.del;
       if (!id) return;
@@ -330,13 +343,33 @@
       await refreshItems(null);
     });
 
+    // inline stage change
+    tbody.addEventListener('change', async (e)=>{
+      const id = e.target?.dataset?.stageFor;
+      if (!id) return;
+      const newIdx = Number(e.target.value);
+      const rowItem = items.find(x => x.id === id);
+      const prevIdx = Number(rowItem?.stageIndex || 0);
+
+      e.target.disabled = true;
+      const r = await apiPost({ action:'update', id, stageIndex:newIdx });
+      if (!r.ok){
+        alert('Failed to update stage: ' + (r.error || 'unknown'));
+        e.target.value = String(prevIdx);
+        e.target.disabled = false;
+        return;
+      }
+      if (rowItem) rowItem.stageIndex = newIdx;
+      await refreshItems(id, { silent:true });
+      e.target.disabled = false;
+    });
+
     /* ===== Data refresh ===== */
     async function refreshItems(selectId=null, opts={}){
       const data = await apiGet();
       if (!data.ok) throw new Error(data.error || 'GET failed');
       items = (data.items||[]).filter(r=>r && r.id);
-      // latest first
-      items.sort((a,b)=> String(b.UpdatedAt||'').localeCompare(String(a.UpdatedAt||'')));
+      items.sort((a,b)=> String(b.UpdatedAt||'').localeCompare(String(a.UpdatedAt||''))); // latest first
       renderDropdown();
       renderTable();
       if (selectId && items.find(i=>i.id===selectId)) {
@@ -412,10 +445,6 @@
         alert('Failed to load from Sheets. Check API_URL/TOKEN & deployment.');
       }
     })();
-
-    /* Expose for inline onclicks in stage blocks */
-    window.updateStage = updateStage;
-    window.nextStage  = () => { if (currentStageIndex < stages.length-1) updateStage(currentStageIndex+1); };
   </script>
 </body>
 </html>
